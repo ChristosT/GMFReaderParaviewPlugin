@@ -1,0 +1,6 @@
+<ParaViewReaders>
+  <Reader name="MEDITReader"
+          extensions="mesh meshb"
+          file_description="INRIA mesh Files">
+  </Reader>
+</ParaViewReaders>

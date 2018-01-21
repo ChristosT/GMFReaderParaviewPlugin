@@ -1,0 +1,29 @@
+<ServerManagerConfiguration>
+  <ProxyGroup name="sources">
+   <SourceProxy name="MEDITReader" 
+                class="vtkMEDITReader"
+                label="MEDIT reader">
+     <Documentation
+       short_help="Read a mesh/meshb file."
+       long_help="Read a mesh/meshb file into an image data.">
+       The MEDIT reader reads GAMMA INRIA mesh files, and the output is a surface mesh.
+     </Documentation>
+     <StringVectorProperty
+        name="FileName"
+        animateable="0"
+        command="SetFileName"
+        number_of_elements="1">
+        <FileListDomain name="files"/>
+        <Documentation>
+          This property specifies the file name for the MEDIT reader.
+        </Documentation>
+     </StringVectorProperty>
+     <Hints>
+       <ReaderFactory extensions="mesh meshb"
+                      file_description="INRIA File Format" />
+     </Hints>
+   <!-- End MEDITReader -->
+   </SourceProxy>
+  </ProxyGroup>
+</ServerManagerConfiguration>
+
