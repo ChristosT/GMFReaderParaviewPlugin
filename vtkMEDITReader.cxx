@@ -3,14 +3,16 @@
 #include "vtkInformation.h"
 #include "vtkInformationVector.h"
 
-#include "vtkPolyData.h"
+#include "vtkUnstructuredGrid.h"
+#include "vtkCellType.h"
+#include "vtkCellArray.h"
 #include "vtkSmartPointer.h"
 
 #include "libmeshb7.h"
 
 
-vtkStandardNewMacro(vtkMEDITReader);
 
+vtkStandardNewMacro(vtkMEDITReader);
 
 // Construct object with merging set to true.
 vtkMEDITReader::vtkMEDITReader()
@@ -19,6 +21,7 @@ vtkMEDITReader::vtkMEDITReader()
 
     this->SetNumberOfInputPorts(0);
 }
+
 
 vtkMEDITReader::~vtkMEDITReader()
 {
@@ -34,7 +37,7 @@ vtkMEDITReader::~vtkMEDITReader()
     vtkInformation *outInfo = outputVector->GetInformationObject(0);
 
     // get the ouptut
-    vtkPolyData *output = vtkPolyData::SafeDownCast( outInfo->Get(vtkDataObject::DATA_OBJECT())); 
+    vtkUnstructuredGrid *output = vtkUnstructuredGrid::SafeDownCast( outInfo->Get(vtkDataObject::DATA_OBJECT())); 
 
     if (!this->FileName)
     {
@@ -56,7 +59,7 @@ vtkMEDITReader::~vtkMEDITReader()
         vtkErrorMacro(<<"Unsupported mesh dimension " << dim );
         return 0;
     }
-    if(version != 3 and version !=4)
+    if(version!= 2 and version != 3 and  version !=4)
     {
         vtkErrorMacro(<<"Unsupported mesh version " << dim );
         return 0;
@@ -89,13 +92,19 @@ vtkMEDITReader::~vtkMEDITReader()
     // Get Number of Triangles
     int64_t NmbTri = GmfStatKwd(InpMsh, GmfTriangles);
     vtkDebugMacro(<<NmbTri);
+    vtkSmartPointer<vtkCellArray> cells = vtkSmartPointer<vtkCellArray>::New();
+    
+    cells->Allocate(NmbTri);
+    std::vector<int> cell_types(NmbTri);
+
+
+    vtkIdType vtkVerts[3]; // connectivity information of a single triangle
+
     // Read triangles
     GmfGotoKwd(InpMsh, GmfTriangles);
-    vtkSmartPointer<vtkCellArray> polys = vtkSmartPointer<vtkCellArray>::New();
-    vtkIdType vtkVerts[3]; // connectivity information of a single triangle
     for (int64_t i=0; i < NmbTri; i++)
     {
-        if(version == 3)
+        if(version < 4)
         {
             int verts[3];
             GmfGetLin(  InpMsh, GmfTriangles, &verts[0], &verts[1],&verts[2],&rt);
@@ -118,9 +127,10 @@ vtkMEDITReader::~vtkMEDITReader()
         --vtkVerts[1];
         --vtkVerts[2];
         //vtkDebugMacro(<<vtkVerts[0] << " " <<vtkVerts[1] << " " << vtkVerts[2]);
-        polys->InsertNextCell(3,vtkVerts);
+        cells->InsertNextCell(3,vtkVerts);
+        cell_types[i] = VTK_TRIANGLE;
     }
-    output->SetPolys(polys);
+    output->SetCells(cell_types.data(),cells);
 
     vtkDebugMacro( <<"Read: " << NmbVer << " points, " << NmbTri << " triangles"); 
 

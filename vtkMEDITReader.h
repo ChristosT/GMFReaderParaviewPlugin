@@ -1,15 +1,19 @@
 #ifndef vtkMEDITeader_h
 #define vtkMEDITReader_h
 
-#include "vtkAbstractPolyDataReader.h"
+#include "vtkUnstructuredGridAlgorithm.h"
+#include "vtkObjectFactory.h"
 
-class vtkMEDITReader : public vtkAbstractPolyDataReader
+class vtkMEDITReader : public vtkUnstructuredGridAlgorithm
 {
 public:
-  vtkTypeMacro(vtkMEDITReader,vtkAbstractPolyDataReader);
+  static vtkMEDITReader* New();
+  vtkTypeMacro(vtkMEDITReader,vtkUnstructuredGridAlgorithm);
   void PrintSelf(ostream& os, vtkIndent indent) VTK_OVERRIDE;
 
-  static vtkMEDITReader *New();
+  vtkSetStringMacro(FileName);
+  vtkGetStringMacro(FileName);
+
 
 protected:
   vtkMEDITReader();
@@ -17,6 +21,7 @@ protected:
 
   int RequestData(vtkInformation *, vtkInformationVector **, vtkInformationVector *) VTK_OVERRIDE;
 private:
+  char* FileName;
   vtkMEDITReader(const vtkMEDITReader&) VTK_DELETE_FUNCTION;
   void operator=(const vtkMEDITReader&) VTK_DELETE_FUNCTION;
 };
