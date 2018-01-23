@@ -28,10 +28,9 @@ vtkMEDITReader::~vtkMEDITReader()
     delete [] this->FileName;
 }
 
-    int vtkMEDITReader::RequestData(
-                                    vtkInformation *vtkNotUsed(request),
-                                    vtkInformationVector **vtkNotUsed(inputVector),
-                                    vtkInformationVector *outputVector)
+int vtkMEDITReader::RequestData( vtkInformation *vtkNotUsed(request), 
+                                 vtkInformationVector **vtkNotUsed(inputVector), 
+                                 vtkInformationVector *outputVector)
 {
     // get the info object
     vtkInformation *outInfo = outputVector->GetInformationObject(0);
@@ -75,99 +74,56 @@ vtkMEDITReader::~vtkMEDITReader()
     pts->SetDataTypeToDouble();
     pts->SetNumberOfPoints(NmbVer);
 
-    // Read the vertices
-    vtkDebugMacro(<<"Read Vertices");
-    GmfGotoKwd(InpMsh, GmfVertices);
     double p[3];
     int rt; //reference , not in use in this module
+    
+    // Read the vertices
+    GmfGotoKwd(InpMsh, GmfVertices);
     for(int64_t i=0;i<NmbVer;i++)
     {
         GmfGetLin(  InpMsh, GmfVertices, &p[0], &p[1], &p[2],&rt);
-        //vtkDebugMacro(<<p[0] << " " <<p[1] << " " << p[2]);
+        vtkDebugMacro(<<p[0] << " " <<p[1] << " " << p[2]);
         pts->SetPoint(i,p);
     }
     output->SetPoints(pts);
-    vtkDebugMacro(<<"DONE");
 
-    // Get Number of Triangles
+    // Get Number of Triangles and Tetrahedra
     int64_t NmbTri = GmfStatKwd(InpMsh, GmfTriangles);
     int64_t NmbTet = GmfStatKwd(InpMsh, GmfTetrahedra);
-    vtkDebugMacro(<<NmbTri);
-    vtkSmartPointer<vtkCellArray> cells = vtkSmartPointer<vtkCellArray>::New();
+
+    output->Allocate(NmbTri + NmbTet);
     
-    cells->Allocate(NmbTri + NmbTet);
-    std::vector<int> cell_types(NmbTri + NmbTet);
-
-
+    vtkSmartPointer<vtkIdList> pointIds = vtkSmartPointer<vtkIdList>::New();
+    int64_t v0,v1,v2,v3;
 
     // Read triangles
     GmfGotoKwd(InpMsh, GmfTriangles);
-    vtkIdType vtkVerts[3]; // connectivity information of a single triangle
+    pointIds->SetNumberOfIds(3);
     for (int64_t i=0; i < NmbTri; i++)
     {
-        if(version < 4)
-        {
-            int verts[3];
-            GmfGetLin(  InpMsh, GmfTriangles, &verts[0], &verts[1],&verts[2],&rt);
-            //vtkDebugMacro(<<verts[0] << " " <<verts[1] << " " << verts[2]);
-            vtkVerts[0] = verts[0];
-            vtkVerts[1] = verts[1];
-            vtkVerts[2] = verts[2];
-        }
-        else
-        {
-            int64_t verts[3];
-            GmfGetLin(  InpMsh, GmfTriangles, &verts[0], &verts[1],&verts[2],&rt);
-            //vtkDebugMacro(<<verts[0] << " " <<verts[1] << " " << verts[2]);
-            vtkVerts[0] = verts[0];
-            vtkVerts[1] = verts[1];
-            vtkVerts[2] = verts[2];
-        }
+        GmfGetLin(  InpMsh, GmfTriangles, &v0, &v1,&v2,&rt);
+        vtkDebugMacro(<<v0 << " " <<v1 << " " << v2);
+
         // mesh/meshb are one based
-        --vtkVerts[0];
-        --vtkVerts[1];
-        --vtkVerts[2];
-        //vtkDebugMacro(<<vtkVerts[0] << " " <<vtkVerts[1] << " " << vtkVerts[2]);
-        cells->InsertNextCell(3,vtkVerts);
-        cell_types[i] = VTK_TRIANGLE;
+        pointIds->SetId(0,v0-1);
+        pointIds->SetId(1,v1-1);
+        pointIds->SetId(2,v2-1);
+        output->InsertNextCell(VTK_TRIANGLE,pointIds);
     }
+    
     GmfGotoKwd(InpMsh, GmfTetrahedra);
-    {
-    vtkIdType vtkVerts[4]; // connectivity information of a single triangle
+    pointIds->SetNumberOfIds(4);
     for (int64_t i=0; i < NmbTet; i++)
     {
-        if(version < 4 )
-        {
-            int verts[4];
-            GmfGetLin(  InpMsh, GmfTetrahedra, &verts[0], &verts[1],&verts[2],&verts[3],&rt);
-            //vtkDebugMacro(<<verts[0] << " " <<verts[1] << " " << verts[2]);
-            vtkVerts[0] = verts[0];
-            vtkVerts[1] = verts[1];
-            vtkVerts[2] = verts[2];
-            vtkVerts[3] = verts[3];
-        }
-        else
-        {
-            int64_t verts[4];
-            GmfGetLin(  InpMsh, GmfTetrahedra, &verts[0], &verts[1],&verts[2],&verts[3],&rt);
-            //vtkDebugMacro(<<verts[0] << " " <<verts[1] << " " << verts[2]);
-            vtkVerts[0] = verts[0];
-            vtkVerts[1] = verts[1];
-            vtkVerts[2] = verts[2];
-            vtkVerts[3] = verts[3];
-        }
+        GmfGetLin(  InpMsh, GmfTetrahedra, &v0, &v1,&v2,&v3,&rt);
+        vtkDebugMacro(<<v0 << " " <<v1 << " " << v2 << " " << v3);
         // mesh/meshb are one based
-        --vtkVerts[0];
-        --vtkVerts[1];
-        --vtkVerts[2];
-        --vtkVerts[3];
-        //vtkWarningMacro(<<vtkVerts[0] << " " <<vtkVerts[1] << " " << vtkVerts[2]<<" " << vtkVerts[3]);
-        cells->InsertNextCell(4,vtkVerts);
-        cell_types[ NmbTri + i ] = VTK_TETRA;
+        pointIds->SetId(0,v0-1);
+        pointIds->SetId(1,v1-1);
+        pointIds->SetId(2,v2-1);
+        pointIds->SetId(3,v3-1);
+        output->InsertNextCell(VTK_TETRA,pointIds);
     }
-    }
-    output->SetCells(cell_types.data(),cells);
-
 
     // Close the mesh
     GmfCloseMesh(InpMsh);
