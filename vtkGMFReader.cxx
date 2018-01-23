@@ -1,4 +1,4 @@
-#include "vtkMEDITReader.h"
+#include "vtkGMFReader.h"
 
 #include "vtkInformation.h"
 #include "vtkInformationVector.h"
@@ -12,10 +12,10 @@
 
 
 
-vtkStandardNewMacro(vtkMEDITReader);
+vtkStandardNewMacro(vtkGMFReader);
 
 // Construct object with merging set to true.
-vtkMEDITReader::vtkMEDITReader()
+vtkGMFReader::vtkGMFReader()
 {
     this->FileName = NULL;
 
@@ -23,12 +23,12 @@ vtkMEDITReader::vtkMEDITReader()
 }
 
 
-vtkMEDITReader::~vtkMEDITReader()
+vtkGMFReader::~vtkGMFReader()
 {
     delete [] this->FileName;
 }
 
-int vtkMEDITReader::RequestData( vtkInformation *vtkNotUsed(request), 
+int vtkGMFReader::RequestData( vtkInformation *vtkNotUsed(request), 
                                  vtkInformationVector **vtkNotUsed(inputVector), 
                                  vtkInformationVector *outputVector)
 {
@@ -44,13 +44,13 @@ int vtkMEDITReader::RequestData( vtkInformation *vtkNotUsed(request),
         return 0;
     }
 
-    // open a MEDIT file for reading
+    // open a GMF file for reading
     int64_t InpMsh;
     int version,dim;
     InpMsh = GmfOpenMesh(this->FileName, GmfRead, &version, &dim);
     if(InpMsh == 0)
     {
-        vtkWarningMacro(<<"Could not open MEDIT file");
+        vtkWarningMacro(<<"Could not open GMF file");
         return 0;
     }
     if( dim != 3)
@@ -131,7 +131,7 @@ int vtkMEDITReader::RequestData( vtkInformation *vtkNotUsed(request),
     return 1;
 }
 
-void vtkMEDITReader::PrintSelf(ostream& os, vtkIndent indent)
+void vtkGMFReader::PrintSelf(ostream& os, vtkIndent indent)
 {
     this->Superclass::PrintSelf(os,indent);
 

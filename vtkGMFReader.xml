@@ -1,12 +1,12 @@
 <ServerManagerConfiguration>
   <ProxyGroup name="sources">
-   <SourceProxy name="MEDITReader" 
-                class="vtkMEDITReader"
-                label="MEDIT reader">
+   <SourceProxy name="GMFReader" 
+                class="vtkGMFReader"
+                label="GMF reader">
      <Documentation
        short_help="Read a mesh/meshb file."
        long_help="Read a mesh/meshb file into an image data.">
-       The MEDIT reader reads GAMMA INRIA mesh files, and the output is a surface mesh.
+       The GMF reader reads GAMMA Mesh Format (INRIA) files, and the output is an unstructured grid.
      </Documentation>
      <StringVectorProperty
         name="FileName"
@@ -15,12 +15,12 @@
         number_of_elements="1">
         <FileListDomain name="files"/>
         <Documentation>
-          This property specifies the file name for the MEDIT reader.
+          This property specifies the file name for the GMF reader.
         </Documentation>
      </StringVectorProperty>
      <Hints>
        <ReaderFactory extensions="mesh meshb"
-                      file_description="INRIA File Format" />
+                      file_description="Gamma Mesh Format" />
      </Hints>
    <!-- End MEDITReader -->
    </SourceProxy>

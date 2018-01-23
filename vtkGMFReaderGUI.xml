@@ -1,6 +1,6 @@
 <ParaViewReaders>
-  <Reader name="MEDITReader"
+  <Reader name="GMFReader"
           extensions="mesh meshb"
-          file_description="INRIA mesh Files">
+          file_description="Gamma Mesh Format (INRIA)">
   </Reader>
 </ParaViewReaders>
