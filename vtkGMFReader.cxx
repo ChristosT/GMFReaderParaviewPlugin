@@ -4,13 +4,12 @@
 #include "vtkInformationVector.h"
 
 #include "vtkUnstructuredGrid.h"
-#include "vtkCellType.h"
-#include "vtkCellArray.h"
+#include "vtkPointData.h"
+#include "vtkDoubleArray.h"
 #include "vtkSmartPointer.h"
 
 #include "libmeshb7.h"
-
-
+#include "ConnectivityReader.h"
 
 vtkStandardNewMacro(vtkGMFReader);
 
@@ -58,16 +57,17 @@ int vtkGMFReader::RequestData( vtkInformation *vtkNotUsed(request),
         vtkErrorMacro(<<"Unsupported mesh dimension " << dim );
         return 0;
     }
-    if( (version !=2 ) and (version != 3) and (version !=4) )
+    if( (version != 2 ) and (version != 3) and (version != 4) )
     {
         vtkErrorMacro(<<"Unsupported mesh version " << version );
         return 0;
     }
-    
+
 
     vtkDebugMacro(<<"File Opened");
+    
     // Read the number of vertices
-    int64_t NmbVer = GmfStatKwd(InpMsh, GmfVertices);
+    const int64_t NmbVer = GmfStatKwd(InpMsh, GmfVertices);
 
     // Set up point container
     vtkSmartPointer<vtkPoints> pts = vtkSmartPointer<vtkPoints>::New();
@@ -75,8 +75,8 @@ int vtkGMFReader::RequestData( vtkInformation *vtkNotUsed(request),
     pts->SetNumberOfPoints(NmbVer);
 
     double p[3];
-    int rt; //reference , not in use in this module
-    
+    int rt; //reference , not in use in this plugin
+
     // Read the vertices
     GmfGotoKwd(InpMsh, GmfVertices);
     for(int64_t i=0;i<NmbVer;i++)
@@ -87,46 +87,86 @@ int vtkGMFReader::RequestData( vtkInformation *vtkNotUsed(request),
     }
     output->SetPoints(pts);
 
-    // Get Number of Triangles and Tetrahedra
-    int64_t NmbTri = GmfStatKwd(InpMsh, GmfTriangles);
-    int64_t NmbTet = GmfStatKwd(InpMsh, GmfTetrahedra);
-
-    output->Allocate(NmbTri + NmbTet);
-    
-    vtkSmartPointer<vtkIdList> pointIds = vtkSmartPointer<vtkIdList>::New();
-    int64_t v0,v1,v2,v3;
-
-    // Read triangles
-    GmfGotoKwd(InpMsh, GmfTriangles);
-    pointIds->SetNumberOfIds(3);
-    for (int64_t i=0; i < NmbTri; i++)
+    // Read Triangles and Tetrahedra
+    if(version < 4)
     {
-        GmfGetLin(  InpMsh, GmfTriangles, &v0, &v1,&v2,&rt);
-        vtkDebugMacro(<<v0 << " " <<v1 << " " << v2);
-
-        // mesh/meshb are one based
-        pointIds->SetId(0,v0-1);
-        pointIds->SetId(1,v1-1);
-        pointIds->SetId(2,v2-1);
-        output->InsertNextCell(VTK_TRIANGLE,pointIds);
+        ReadConnectivity<int32_t>(InpMsh,output);
     }
-    
-    GmfGotoKwd(InpMsh, GmfTetrahedra);
-    pointIds->SetNumberOfIds(4);
-    for (int64_t i=0; i < NmbTet; i++)
+    else
     {
-        GmfGetLin(  InpMsh, GmfTetrahedra, &v0, &v1,&v2,&v3,&rt);
-        vtkDebugMacro(<<v0 << " " <<v1 << " " << v2 << " " << v3);
-        // mesh/meshb are one based
-        pointIds->SetId(0,v0-1);
-        pointIds->SetId(1,v1-1);
-        pointIds->SetId(2,v2-1);
-        pointIds->SetId(3,v3-1);
-        output->InsertNextCell(VTK_TETRA,pointIds);
+        ReadConnectivity<int64_t>(InpMsh,output);
     }
+
+
+    output->Squeeze();
 
     // Close the mesh
     GmfCloseMesh(InpMsh);
+
+    // Try to open a sol/solb file if it exists with the same name
+    std::string basefilename(this->FileName);
+
+    const char ch = *basefilename.rbegin(); // .back() requires c++11
+
+    if (ch == 'b')
+    {
+        // extension is meshb
+        basefilename = basefilename.substr(0,basefilename.size() -5); // remove 'meshb'
+    }
+    else
+    {
+        basefilename = basefilename.substr(0,basefilename.size() -4); // remove 'mesh'
+    }
+
+    //try ascii mode
+    InpMsh = GmfOpenMesh((basefilename + "sol").c_str(), GmfRead, &version, &dim);
+    if(InpMsh == 0)
+    {
+        // try binary mode
+        InpMsh = GmfOpenMesh((basefilename + "solb").c_str(), GmfRead, &version, &dim);
+        if(InpMsh == 0)
+        {
+            return 1;
+        }
+    }
+
+    int64_t NmbSol;
+    int SolSiz, NmbTyp, TypTab[ GmfMaxTyp ];
+    
+    NmbSol = GmfStatKwd(InpMsh, GmfSolAtVertices, &NmbTyp, &SolSiz, TypTab);
+
+    if(SolSiz > 6)
+    {
+        vtkWarningMacro("Unsupported Solution size :" << SolSiz << " Currently up to  size 6 is supported");
+        GmfCloseMesh(InpMsh);
+        return 1;
+    }
+    if(NmbSol != NmbVer)
+    {
+        vtkWarningMacro("Unsupported number of solutions, all vertices should have a solution");
+        GmfCloseMesh(InpMsh);
+        return 1;
+    }
+    
+    vtkSmartPointer<vtkDoubleArray> metric = vtkSmartPointer<vtkDoubleArray>::New();
+
+    metric->SetNumberOfComponents(SolSiz);
+    metric->SetNumberOfTuples(NmbSol);
+    metric->SetName("metric");
+    
+    double* sol = new double[SolSiz];
+    
+    GmfGotoKwd(InpMsh, GmfSolAtVertices);
+    for(int64_t i=0;i<NmbSol;i++)
+    {
+        GmfGetLin(  InpMsh, GmfSolAtVertices, sol);
+        metric->InsertTuple(i,sol);
+    }
+
+    GmfCloseMesh(InpMsh);
+    output->GetPointData()->AddArray(metric);
+
+    delete[] sol;
 
     return 1;
 }
