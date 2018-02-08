@@ -3,14 +3,14 @@
 
 #include "libmeshb7.h"
 #include "vtkUnstructuredGrid.h"
-#include "vtkType.h"
+#include "vtkCellType.h"
 
 template<typename IndexType>
 void ReadConnectivity(int64_t& InpMsh,vtkUnstructuredGrid* output)
 {
     //Allocate enough Memory
-    int64_t NmbTri = GmfStatKwd(InpMsh, GmfTriangles);
-    int64_t NmbTet = GmfStatKwd(InpMsh, GmfTetrahedra);
+    int64_t NmbTri   = GmfStatKwd(InpMsh, GmfTriangles);
+    int64_t NmbTet   = GmfStatKwd(InpMsh, GmfTetrahedra);
     output->Allocate(NmbTri + NmbTet);
 
     IndexType v0,v1,v2,v3,rt;
