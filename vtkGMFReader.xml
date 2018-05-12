@@ -5,24 +5,34 @@
                 label="GMF reader">
      <Documentation
        short_help="Read a mesh/meshb file."
-       long_help="Read a mesh/meshb file into an image data.">
+       long_help="Read a mesh/meshb file and optionally a sol/solb file.">
        The GMF reader reads GAMMA Mesh Format (INRIA) files, and the output is an unstructured grid.
      </Documentation>
      <StringVectorProperty
-        name="FileName"
+        name="Mesh File"
         animateable="0"
-        command="SetFileName"
+        command="SetMeshFile"
         number_of_elements="1">
         <FileListDomain name="files"/>
         <Documentation>
-          This property specifies the file name for the GMF reader.
+          This property specifies the mesh file name for the GMF reader.
+        </Documentation>
+     </StringVectorProperty>
+     <StringVectorProperty
+        name="Solution File"
+        animateable="0"
+        command="SetSolutionFile"
+        number_of_elements="1">
+        <FileListDomain name="files"/>
+        <Documentation>
+          This property specifies the solution file name for the GMF reader.
         </Documentation>
      </StringVectorProperty>
      <Hints>
-       <ReaderFactory extensions="mesh meshb"
-                      file_description="Gamma Mesh Format" />
+       <ReaderFactory extensions="mesh meshb sol solb"
+                      file_description="Gamma INRIA Mesh Format" />
      </Hints>
-   <!-- End MEDITReader -->
+   <!-- End GMFReaderParaviewPlugin -->
    </SourceProxy>
   </ProxyGroup>
 </ServerManagerConfiguration>

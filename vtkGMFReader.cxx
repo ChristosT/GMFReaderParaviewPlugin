@@ -16,7 +16,8 @@ vtkStandardNewMacro(vtkGMFReader);
 // Construct object with merging set to true.
 vtkGMFReader::vtkGMFReader()
 {
-    this->FileName = NULL;
+    this->MeshFile = NULL;
+    this->SolutionFile = NULL;
 
     this->SetNumberOfInputPorts(0);
 }
@@ -24,7 +25,8 @@ vtkGMFReader::vtkGMFReader()
 
 vtkGMFReader::~vtkGMFReader()
 {
-    delete [] this->FileName;
+    delete [] this->MeshFile;
+    delete [] this->SolutionFile;
 }
 
 int vtkGMFReader::RequestData( vtkInformation *vtkNotUsed(request), 
@@ -37,16 +39,16 @@ int vtkGMFReader::RequestData( vtkInformation *vtkNotUsed(request),
     // get the ouptut
     vtkUnstructuredGrid *output = vtkUnstructuredGrid::SafeDownCast( outInfo->Get(vtkDataObject::DATA_OBJECT())); 
 
-    if (!this->FileName)
+    if (!this->MeshFile)
     {
-        vtkErrorMacro(<<"A File Name must be specified.");
+        vtkErrorMacro(<<"A File Name for the Mesh must be specified.");
         return 0;
     }
 
     // open a GMF file for reading
     int64_t InpMsh;
     int version,dim;
-    InpMsh = GmfOpenMesh(this->FileName, GmfRead, &version, &dim);
+    InpMsh = GmfOpenMesh(this->MeshFile, GmfRead, &version, &dim);
     if(InpMsh == 0)
     {
         vtkWarningMacro(<<"Could not open GMF file");
@@ -64,7 +66,7 @@ int vtkGMFReader::RequestData( vtkInformation *vtkNotUsed(request),
     }
 
 
-    vtkDebugMacro(<<"File Opened");
+    vtkDebugMacro(<<"Mesh File Opened");
     
     // Read the number of vertices
     const int64_t NmbVer = GmfStatKwd(InpMsh, GmfVertices);
@@ -103,36 +105,32 @@ int vtkGMFReader::RequestData( vtkInformation *vtkNotUsed(request),
     // Close the mesh
     GmfCloseMesh(InpMsh);
 
-    // Try to open a sol/solb file if it exists with the same name
-    std::string basefilename(this->FileName);
+    if(this->SolutionFile == NULL || strlen(this->SolutionFile) == 0)
+        return 1;
 
-    const char ch = *basefilename.rbegin(); // .back() requires c++11
 
-    if (ch == 'b')
-    {
-        // extension is meshb
-        basefilename = basefilename.substr(0,basefilename.size() -5); // remove 'meshb'
-    }
-    else
-    {
-        basefilename = basefilename.substr(0,basefilename.size() -4); // remove 'mesh'
-    }
-
-    //try ascii mode
-    InpMsh = GmfOpenMesh((basefilename + "sol").c_str(), GmfRead, &version, &dim);
+    InpMsh = GmfOpenMesh( this->SolutionFile, GmfRead, &version, &dim);
     if(InpMsh == 0)
     {
-        // try binary mode
-        InpMsh = GmfOpenMesh((basefilename + "solb").c_str(), GmfRead, &version, &dim);
-        if(InpMsh == 0)
-        {
-            return 1;
-        }
+        vtkWarningMacro(<<"Could not open Solution file");
+        return 0;
     }
+    if( dim != 3)
+    {
+        vtkErrorMacro(<<"Unsupported mesh dimension " << dim );
+        return 0;
+    }
+    if( (version != 2 ) and (version != 3) and (version != 4) )
+    {
+        vtkErrorMacro(<<"Unsupported mesh version " << version );
+        return 0;
+    }
+    
+    vtkDebugMacro(<<"Solution File Opened");
 
     int64_t NmbSol;
     int SolSiz, NmbTyp, TypTab[ GmfMaxTyp ];
-    
+
     NmbSol = GmfStatKwd(InpMsh, GmfSolAtVertices, &NmbTyp, &SolSiz, TypTab);
 
     if(SolSiz > 6)
@@ -147,24 +145,24 @@ int vtkGMFReader::RequestData( vtkInformation *vtkNotUsed(request),
         GmfCloseMesh(InpMsh);
         return 1;
     }
-    
-    vtkSmartPointer<vtkDoubleArray> metric = vtkSmartPointer<vtkDoubleArray>::New();
 
-    metric->SetNumberOfComponents(SolSiz);
-    metric->SetNumberOfTuples(NmbSol);
-    metric->SetName("metric");
-    
+    vtkSmartPointer<vtkDoubleArray> metric_field = vtkSmartPointer<vtkDoubleArray>::New();
+
+    metric_field->SetNumberOfComponents(SolSiz);
+    metric_field->SetNumberOfTuples(NmbSol);
+    metric_field->SetName("metric_field");
+
     double* sol = new double[SolSiz];
-    
+
     GmfGotoKwd(InpMsh, GmfSolAtVertices);
     for(int64_t i=0;i<NmbSol;i++)
     {
         GmfGetLin(  InpMsh, GmfSolAtVertices, sol);
-        metric->InsertTuple(i,sol);
+        metric_field->InsertTuple(i,sol);
     }
 
     GmfCloseMesh(InpMsh);
-    output->GetPointData()->AddArray(metric);
+    output->GetPointData()->AddArray(metric_field);
 
     delete[] sol;
 
@@ -175,6 +173,8 @@ void vtkGMFReader::PrintSelf(ostream& os, vtkIndent indent)
 {
     this->Superclass::PrintSelf(os,indent);
 
-    os << indent << "File Name: "
-        << (this->FileName ? this->FileName : "(none)") << "\n";
+    os  << indent << "MeshFile: "
+        << (this->MeshFile ? this->MeshFile : "(none)") << "\n"
+        << indent << "SolutionFile: "
+        << (this->SolutionFile ? this->SolutionFile : "(none)") << "\n";
 }

@@ -11,9 +11,11 @@ public:
   vtkTypeMacro(vtkGMFReader,vtkUnstructuredGridAlgorithm);
   void PrintSelf(ostream& os, vtkIndent indent) VTK_OVERRIDE;
 
-  vtkSetStringMacro(FileName);
-  vtkGetStringMacro(FileName);
+  vtkSetStringMacro(MeshFile);
+  vtkSetStringMacro(SolutionFile);
 
+  vtkGetStringMacro(MeshFile);
+  vtkGetStringMacro(SolutionFile);
 
 protected:
   vtkGMFReader();
@@ -21,7 +23,8 @@ protected:
 
   int RequestData(vtkInformation *, vtkInformationVector **, vtkInformationVector *) VTK_OVERRIDE;
 private:
-  char* FileName;
+  char* MeshFile;
+  char* SolutionFile;
   vtkGMFReader(const vtkGMFReader&) VTK_DELETE_FUNCTION;
   void operator=(const vtkGMFReader&) VTK_DELETE_FUNCTION;
 };
