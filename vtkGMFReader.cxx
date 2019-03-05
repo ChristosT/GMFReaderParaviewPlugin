@@ -20,6 +20,7 @@ vtkGMFReader::vtkGMFReader()
     this->SolutionFile = NULL;
 
     this->SetNumberOfInputPorts(0);
+    this->SetNumberOfOutputPorts(1);
 }
 
 
@@ -66,7 +67,8 @@ int vtkGMFReader::RequestData( vtkInformation *vtkNotUsed(request),
     }
 
 
-    vtkDebugMacro(<<"Mesh File Opened");
+    vtkWarningMacro(<<"Mesh File Opened");
+    std::cerr <<"Mesh File Opened" << std::endl;
     
     // Read the number of vertices
     const int64_t NmbVer = GmfStatKwd(InpMsh, GmfVertices);
@@ -148,23 +150,59 @@ int vtkGMFReader::RequestData( vtkInformation *vtkNotUsed(request),
 
     vtkSmartPointer<vtkDoubleArray> metric_field = vtkSmartPointer<vtkDoubleArray>::New();
 
-    metric_field->SetNumberOfComponents(SolSiz);
-    metric_field->SetNumberOfTuples(NmbSol);
-    metric_field->SetName("metric_field");
-
-    double* sol = new double[SolSiz];
-
-    GmfGotoKwd(InpMsh, GmfSolAtVertices);
-    for(int64_t i=0;i<NmbSol;i++)
+    if( SolSiz < 6 )
     {
-        GmfGetLin(  InpMsh, GmfSolAtVertices, sol);
-        metric_field->InsertTuple(i,sol);
+        metric_field->SetNumberOfComponents(SolSiz);
+        metric_field->SetNumberOfTuples(NmbSol);
+        metric_field->SetName("field data");
+
+        double* sol = new double[SolSiz];
+
+        GmfGotoKwd(InpMsh, GmfSolAtVertices);
+        for(int64_t i=0;i<NmbSol;i++)
+        {
+            GmfGetLin(  InpMsh, GmfSolAtVertices, sol);
+            metric_field->InsertTuple(i,sol);
+        }
+
+        GmfCloseMesh(InpMsh);
+        output->GetPointData()->AddArray(metric_field);
+
+        delete[] sol;
     }
+    else
+        // if we are dealing with tensors save them as such to enable more visualization options
+    {
+        metric_field->SetNumberOfComponents(9);
+        metric_field->SetNumberOfTuples(NmbSol);
+        metric_field->SetName("metric_field");
 
-    GmfCloseMesh(InpMsh);
-    output->GetPointData()->AddArray(metric_field);
+        double* sol = new double[SolSiz];
 
-    delete[] sol;
+        double tensor[9];
+
+        GmfGotoKwd(InpMsh, GmfSolAtVertices);
+        for(int64_t i=0;i<NmbSol;i++)
+        {
+            GmfGetLin(  InpMsh, GmfSolAtVertices, sol);
+            // sol represents the matrix 
+            // sol0 sol1 sol3
+            // sol1 sol2 sol4
+            // sol3 sol4 sol5
+            
+            // VTK expect column major ordering
+            tensor[0] = sol[0];  tensor[1] = sol[1]; tensor[2] = sol[3];
+            tensor[3] = sol[1];  tensor[4] = sol[2]; tensor[5] = sol[4];
+            tensor[6] = sol[3];  tensor[7] = sol[4]; tensor[8] = sol[5];
+            metric_field->InsertTuple(i,tensor);
+        }
+
+        GmfCloseMesh(InpMsh);
+        output->GetPointData()->AddArray(metric_field);
+
+        delete[] sol;
+
+    }
 
     return 1;
 }
