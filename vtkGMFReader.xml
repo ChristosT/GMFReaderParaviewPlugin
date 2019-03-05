@@ -29,7 +29,7 @@
         </Documentation>
      </StringVectorProperty>
      <Hints>
-       <ReaderFactory extensions="mesh meshb sol solb"
+       <ReaderFactory extensions="mesh meshb"
                       file_description="Gamma INRIA Mesh Format" />
      </Hints>
    <!-- End GMFReaderParaviewPlugin -->
