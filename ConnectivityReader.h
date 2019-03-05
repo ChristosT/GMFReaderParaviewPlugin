@@ -16,14 +16,15 @@ void ReadConnectivity(int64_t& InpMsh,vtkUnstructuredGrid* output)
     int64_t NmbTet   = GmfStatKwd(InpMsh, GmfTetrahedra);
     int64_t NmbPrism   = GmfStatKwd(InpMsh, GmfPrisms);
     int64_t NmbPyramid   = GmfStatKwd(InpMsh, GmfPyramids);
-    output->Allocate(NmbTri + NmbQuad + NmbTet + NmbPrism + NmbPyramid);
+    int64_t NmbHex       = GmfStatKwd(InpMsh, GmfHexahedra);
+    output->Allocate(NmbTri + NmbQuad + NmbTet + NmbPrism + NmbPyramid + NmbHex);
 
     vtkSmartPointer<vtkTypeInt64Array> reference = vtkSmartPointer<vtkTypeInt64Array>::New();
     reference->SetNumberOfComponents(1);
-    reference->SetNumberOfTuples(NmbTri + NmbQuad + NmbTet + NmbPrism + NmbPyramid);
+    reference->SetNumberOfTuples(NmbTri + NmbQuad + NmbTet + NmbPrism + NmbPyramid +NmbHex);
     reference->SetName("ref");
     
-    IndexType v0,v1,v2,v3,v4,v5,rt;
+    IndexType v0,v1,v2,v3,v4,v5,v6,v7,rt;
     int64_t last_index = 0;
     
     GmfGotoKwd(InpMsh, GmfTriangles);
@@ -113,6 +114,27 @@ void ReadConnectivity(int64_t& InpMsh,vtkUnstructuredGrid* output)
         reference->InsertTuple1(last_index + i,rt);
     }
     last_index += NmbPyramid;
+
+    GmfGotoKwd(InpMsh, GmfHexahedra);
+    vtkIdType hexahedron[8];
+    
+    for (int64_t i=0; i < NmbHex; i++)
+    {
+        GmfGetLin(  InpMsh, GmfHexahedra, &v0, &v1,&v2,&v3,&v4,&v5,&v6,&v7,&rt);
+        
+        // mesh/meshb are one based
+        hexahedron[0] = v0-1;
+        hexahedron[1] = v1-1;
+        hexahedron[2] = v2-1;
+        hexahedron[3] = v3-1;
+        hexahedron[4] = v4-1;
+        hexahedron[5] = v5-1;
+        hexahedron[6] = v6-1;
+        hexahedron[7] = v7-1;
+        output->InsertNextCell(VTK_HEXAHEDRON,8,hexahedron);
+        reference->InsertTuple1(last_index + i,rt);
+    }
+    last_index += NmbHex;
 
 
     output->GetCellData()->AddArray(reference);
