@@ -20,15 +20,27 @@ vtkGMFReader::vtkGMFReader()
     this->SolutionFile = NULL;
 
     this->SetNumberOfInputPorts(0);
-    this->SetNumberOfOutputPorts(1);
 }
 
 
 vtkGMFReader::~vtkGMFReader()
 {
-    delete [] this->MeshFile;
-    delete [] this->SolutionFile;
+    //delete [] this->MeshFile;
+    //delete [] this->SolutionFile;
 }
+/*
+int vtkGMFReader::FillOutputPortInformation( int port, vtkInformation* info )
+{
+    if ( port == 0 )
+    {
+        info->Set(vtkDataObject::DATA_TYPE_NAME(), "vtkUnstructuredGrid" );
+
+        return 1;
+    }
+
+    return 0;
+}
+*/
 
 int vtkGMFReader::RequestData( vtkInformation *vtkNotUsed(request), 
                                  vtkInformationVector **vtkNotUsed(inputVector), 
@@ -39,6 +51,7 @@ int vtkGMFReader::RequestData( vtkInformation *vtkNotUsed(request),
 
     // get the ouptut
     vtkUnstructuredGrid *output = vtkUnstructuredGrid::SafeDownCast( outInfo->Get(vtkDataObject::DATA_OBJECT())); 
+    //vtkUnstructuredGrid *output = vtkUnstructuredGrid::GetData( outputVector,0); 
 
     if (!this->MeshFile)
     {
@@ -67,7 +80,6 @@ int vtkGMFReader::RequestData( vtkInformation *vtkNotUsed(request),
     }
 
 
-    vtkWarningMacro(<<"Mesh File Opened");
     std::cerr <<"Mesh File Opened" << std::endl;
     
     // Read the number of vertices
