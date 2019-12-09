@@ -10,6 +10,7 @@
 
 #include "libmeshb7.h"
 #include "ConnectivityReader.h"
+#include "GeometryReader.h"
 
 vtkStandardNewMacro(vtkGMFReader);
 
@@ -107,10 +108,12 @@ int vtkGMFReader::RequestData( vtkInformation *vtkNotUsed(request),
     if(version < 4)
     {
         ReadConnectivity<int32_t>(InpMsh,output);
+	ReadGeometry<int32_t,double> (InpMsh,output);
     }
     else
     {
         ReadConnectivity<int64_t>(InpMsh,output);
+	ReadGeometry<int64_t,double> (InpMsh,output);
     }
 
 
