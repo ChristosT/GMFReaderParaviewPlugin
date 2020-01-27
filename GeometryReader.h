@@ -25,22 +25,6 @@ void ReadGeometry(int64_t& InpMsh,vtkUnstructuredGrid* output)
     cad_info->SetNumberOfTuples( output->GetNumberOfPoints());
     cad_info->SetName("cad_info");
 
-    struct CAD_Info
-    {
-         IndexType dim;
-         IndexType id;
-         CAD_Info()
-         {  
-             dim = id = -1;
-         }
-         
-         CAD_Info(int dim_, int id_)
-         {  
-             dim = dim_;
-             id = id_;
-         }
-    };
-    
     IndexType v[2];
     FloatType params[3];
     int64_t last_index = 0;
