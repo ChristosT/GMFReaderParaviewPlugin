@@ -90,6 +90,11 @@ int vtkGMFReader::RequestData( vtkInformation *vtkNotUsed(request),
     vtkSmartPointer<vtkPoints> pts = vtkSmartPointer<vtkPoints>::New();
     pts->SetDataTypeToDouble();
     pts->SetNumberOfPoints(NmbVer);
+    
+    vtkSmartPointer<vtkIntArray> point_id = vtkSmartPointer<vtkIntArray>::New();
+    point_id->SetNumberOfComponents(1);
+    point_id->SetNumberOfTuples(NmbVer);
+    point_id->SetName("point_id");
 
     double p[3];
     int rt; //reference , not in use in this plugin
@@ -101,8 +106,12 @@ int vtkGMFReader::RequestData( vtkInformation *vtkNotUsed(request),
         GmfGetLin(  InpMsh, GmfVertices, &p[0], &p[1], &p[2],&rt);
         vtkDebugMacro(<<p[0] << " " <<p[1] << " " << p[2]);
         pts->SetPoint(i,p);
+        p[0] = rt;
+        point_id->InsertTuple(i,p);
+
     }
     output->SetPoints(pts);
+    output->GetPointData()->AddArray(point_id);
 
     // Read Triangles and Tetrahedra
     if(version < 4)
