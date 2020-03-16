@@ -1,0 +1,7 @@
+NAME
+    GMFReader
+DEPENDS
+    ParaView::VTKExtensionsCore
+    VTK::CommonCore
+    VTK::CommonExecutionModel
+    VTK::vtksys

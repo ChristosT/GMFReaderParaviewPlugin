@@ -1,0 +1,8 @@
+NAME
+  GMFReaderParaview
+DESCRIPTION
+  Reader for visualization of INRIA Gamma mesh format
+REQUIRES_MODULES
+  ParaView::VTKExtensionsCore
+  VTK::CommonCore
+  VTK::CommonExecutionModel
